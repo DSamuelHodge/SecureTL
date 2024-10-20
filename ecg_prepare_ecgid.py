@@ -2,6 +2,7 @@
 Secure Triplet Loss Project Repository (https://github.com/jtrpinto/SecureTL)
 File: ecg_prepare_ecgid.py
 - Prepares the ECG-ID Database for use in Secure Triplet Loss training and experiments.
+- Uses aux_functions.py for data preparation and triplet generation.
 
 Adapted for the ECG-ID Database:
 - 310 ECG recordings from 90 persons
@@ -16,11 +17,10 @@ import numpy as np
 import wfdb
 import pickle
 import aux_functions as af
-from sklearn.model_selection import train_test_split
 
 N_TRAIN = 100000   # Number of triplets for the train set
 N_TEST = 10000     # Number of triplets for the test set
-ECGID_PATH = /content/physionet.org/files/ecgiddb/1.0.0 #/path/to/ecgid/database
+ECGID_PATH = '/path/to/ecgid/database'
 SAVE_TRAIN = 'ecg_train_data.pickle'
 SAVE_TEST = 'ecg_test_data.pickle'
 fs = 500.0  # Sampling frequency of data
@@ -43,54 +43,54 @@ def load_ecg_data(record_path):
 
     return signal, r_peaks, age, gender
 
-def extract_beats(signal, r_peaks, window_size=250):
-    beats = []
-    for peak in r_peaks:
-        start = max(0, peak - window_size // 2)
-        end = min(len(signal), peak + window_size // 2)
-        beat = signal[start:end]
-        if len(beat) < window_size:
-            beat = np.pad(beat, (0, window_size - len(beat)))
-        beats.append(beat)
-    return np.array(beats)
+def extract_data(database_path, subject_range, fs=500.0):
+    data = {'X_anchors': [], 'y_anchors': [], 'X_remaining': [], 'y_remaining': []}
+    
+    for subject in subject_range:
+        subject_files = [f for f in os.listdir(database_path) if f.startswith(f"{subject:03d}_")]
+        if not subject_files:
+            continue
+        
+        # Use the first recording as anchor
+        anchor_file = subject_files[0]
+        anchor_path = os.path.join(database_path, anchor_file[:-4])
+        signal, r_peaks, age, gender = load_ecg_data(anchor_path)
+        data['X_anchors'].append(signal)
+        data['y_anchors'].append(f"{subject:03d}_{age}_{gender}")
+        
+        # Use remaining recordings as additional samples
+        for file in subject_files[1:]:
+            record_path = os.path.join(database_path, file[:-4])
+            signal, r_peaks, age, gender = load_ecg_data(record_path)
+            data['X_remaining'].append(signal)
+            data['y_remaining'].append(f"{subject:03d}_{age}_{gender}")
+    
+    return data
 
-def extract_all_data(database_path):
-    X = []
-    y = []
-    for root, _, files in os.walk(database_path):
-        for file in files:
-            if file.endswith('.dat'):
-                record_path = os.path.join(root, file[:-4])
-                signal, r_peaks, age, gender = load_ecg_data(record_path)
-                beats = extract_beats(signal, r_peaks)
-                X.extend(beats)
-                y.extend([f"{file[:3]}_{age}_{gender}"] * len(beats))
-    return np.array(X), np.array(y)
-
-# Extract all data
+# Dividing subjects for training and for testing
 print("Extracting data from ECG-ID database...")
-X, y = extract_all_data(ECGID_PATH)
+train_data = af.extract_data(ECGID_PATH, range(1, 73), fs=500.0)  # 72 subjects for training
+test_data = af.extract_data(ECGID_PATH, range(73, 91), fs=500.0)  # 18 subjects for testing
 
-# Split data into train and test sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)
-
-# Prepare data for DNN
+# Preparing data for a deep neural network
 print("Preparing data for deep neural network...")
-X_train, y_train = af.prepare_for_dnn(X_train, y_train)
-X_test, y_test = af.prepare_for_dnn(X_test, y_test)
+X_train_a, y_train_a = af.prepare_for_dnn(train_data['X_anchors'], train_data['y_anchors'])
+X_train_r, y_train_r = af.prepare_for_dnn(train_data['X_remaining'], train_data['y_remaining'])
+X_test_a, y_test_a = af.prepare_for_dnn(test_data['X_anchors'], test_data['y_anchors'])
+X_test_r, y_test_r = af.prepare_for_dnn(test_data['X_remaining'], test_data['y_remaining'])
 
-# Generate triplets
+# Generating triplets
 print("Generating triplets...")
-train_triplets = af.generate_triplets(X_train, y_train, N=N_TRAIN)
-test_triplets = af.generate_triplets(X_test, y_test, N=N_TEST)
+train_triplets = af.generate_triplets(X_train_a, y_train_a, X_train_r, y_train_r, N=N_TRAIN)
+test_triplets = af.generate_triplets(X_test_a, y_test_a, X_test_r, y_test_r, N=N_TEST)
 
-# Save prepared data
+# Saving prepared data
 print("Saving prepared data...")
 with open(SAVE_TRAIN, 'wb') as handle:
     pickle.dump(train_triplets, handle)
 with open(SAVE_TEST, 'wb') as handle:
     pickle.dump(test_triplets, handle)
 
-print(f"Train triplets shape: {train_triplets.shape}")
-print(f"Test triplets shape: {test_triplets.shape}")
+print(f"Train triplets shape: {train_triplets[0].shape}")
+print(f"Test triplets shape: {test_triplets[0].shape}")
 print("Data preparation completed and saved.")
