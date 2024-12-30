@@ -27,7 +27,7 @@ from eval import evaluate_secure_model
 DEVICE = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
 MODEL = 'model_name'
-TEST_DATA = 'ecg_test_data.pickle'
+TEST_DATA = 'ecg_test_data.pickle' # Insert Path
 
 BATCH_SIZE = 32
 
@@ -35,18 +35,18 @@ print('Testing model: ' + MODEL)
 
 # Preparing the dataset
 testset = SecureECGDataset(TEST_DATA)
-test_loader = DataLoader(testset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
+test_loader = DataLoader(testset, batch_size=BATCH_SIZE, shuffle=False, num_workers=2)
 
 # Creating the model
 network = SecureECGNetwork().to(DEVICE)
 model = SecureModel(network)
 
 # Loading saved weights
-model.load_state_dict(torch.load(MODEL + '.pth', map_location=DEVICE))
+model.load_state_dict(torch.load(MODEL + '.pth', map_location=DEVICE, weights_only=True))
 model = model.to(DEVICE)
 
 # Evaluating the model on test data
-output = evaluate_secure_model(model, test_loader, BATCH_SIZE, DEVICE, N=10000, debug=True)
+output = evaluate_secure_model(model, test_loader, BATCH_SIZE, DEVICE, N=4000, debug=True)
 
 # Saving the results to a pickle
 with open(os.path.basename(MODEL) + '_results.pk', 'wb') as hf:
