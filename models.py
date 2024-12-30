@@ -195,9 +195,9 @@ class SecureECGNetwork(nn.Module):
                                      nn.ReLU(),
                                      nn.MaxPool1d(3, stride=3) )
 
-        self.dropout = nn.Sequential(nn.Dropout(p=DROPOUT))
+        self.dropout = nn.Sequential(nn.Dropout(p=0.5))
 
-        self.fc = nn.Sequential(nn.Linear(420, 100),
+        self.fc = nn.Sequential(nn.Linear(996, 100), # Modified from (420,100) to align with ECGID dataset
                                 nn.ReLU(),
                                 nn.Linear(100, 100),
                                 nn.ReLU() )
