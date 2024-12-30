@@ -26,13 +26,13 @@ from torch.utils.data import DataLoader
 DEVICE = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
 SAVE_MODEL = 'model_name'
-TRAIN_DATA = 'ecg_train_data.pickle'
+TRAIN_DATA = 'ecg_train_data.pickle' # Insert path
 
 LEARN_RATE = 1e-4  # learning rate
-REG = 0            # L2 regularization hyperparameter
+REG = 0.001           # L2 regularization hyperparameter
 
-N_EPOCHS = 250
-BATCH_SIZE = 32
+N_EPOCHS = 100
+BATCH_SIZE = 16
 VALID_SPLIT = .2 
 
 GAMMA = 0.9        # Set the gamma parameter here
@@ -56,8 +56,8 @@ train_indices, valid_indices = indices[split:], indices[:split]
 train_sampler = torch.utils.data.sampler.SubsetRandomSampler(train_indices)
 valid_sampler = torch.utils.data.sampler.SubsetRandomSampler(valid_indices)
 
-train_loader = DataLoader(trainset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4, sampler=train_sampler)
-valid_loader = DataLoader(trainset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4, sampler=valid_sampler)
+train_loader = DataLoader(trainset, batch_size=BATCH_SIZE, shuffle=False, num_workers=2, sampler=train_sampler)
+valid_loader = DataLoader(trainset, batch_size=BATCH_SIZE, shuffle=False, num_workers=2, sampler=valid_sampler)
 
 # Creating the network and the model
 network = SecureECGNetwork().to(DEVICE)
