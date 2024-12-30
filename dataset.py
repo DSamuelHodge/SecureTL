@@ -74,7 +74,7 @@ class TripletECGDataset(Dataset):
         self.xA = data[0]
         self.xP = data[1]
         self.xN = data[2]
-        self.sample_shape = (1, 1000)
+        self.sample_shape = (1, 2500) # Modified from (1, 1000) to align with ECGID dataset.
 
     def __getitem__(self, index):
         # Load anchor, positive, and negative for a given index
