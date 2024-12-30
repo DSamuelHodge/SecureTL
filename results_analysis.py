@@ -18,7 +18,7 @@ import pickle as pk
 import aux_functions as af
 
 
-RESULTS_FILE = "model_results.pk"   # results file saved by [trait]_test_triplet_model.py or [trait]_test_secure_model.py
+RESULTS_FILE = "model_name_results.pk"   # results file saved by [trait]_test_triplet_model.py or [trait]_test_secure_model.py
 SECURE = True                       # True (model trained with SecureTL) or False (model trained with original Triplet Loss)
 
 results = pk.load(open(RESULTS_FILE, 'rb'))
